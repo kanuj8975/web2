@@ -1,0 +1,752 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>NewsCentral Admin Panel</title>
+  <link rel="stylesheet" href="assets/css/admin.css" />
+  <link href="https://fonts.googleapis.com/css?family=Roboto:400,700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body { background: #E0E0E0; font-family: 'Roboto', sans-serif; }
+    .admin-container {
+      display: flex;
+      min-height: 100vh;
+      height: 100vh;
+      overflow: hidden;
+    }
+    .admin-sidebar {
+      width: 240px;
+      background: #2196F3;
+      color: #fff;
+      min-height: 100vh;
+      height: 100vh;
+      position: relative;
+      z-index: 2;
+      box-shadow: 2px 0 8px #0001;
+      display: flex;
+      flex-direction: column;
+    }
+    .admin-main {
+      flex: 1;
+      overflow-y: auto;
+      height: 100vh;
+      background: transparent;
+      padding-bottom: 2rem;
+    }
+    .dashboard-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 1.5rem;
+      margin: 2rem 0;
+    }
+    .metric-card {
+      background: #fff;
+      border-radius: 12px;
+      box-shadow: 0 2px 12px #0001;
+      padding: 1.5rem 1rem;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-width: 0;
+    }
+    .metric-card.orange .icon { color: #FF9800; }
+    .metric-card.blue .icon { color: #2196F3; }
+    .metric-card.green .icon { color: #43A047; }
+    .metric-card.gray .icon { color: #888; }
+    .metric-value {
+      font-size: 2.1rem;
+      font-weight: 700;
+      margin-bottom: 0.2rem;
+    }
+    .metric-label {
+      font-size: 1.1rem;
+      font-weight: 600;
+      margin-bottom: 0.2rem;
+    }
+    .metric-subtext {
+      font-size: 0.95rem;
+      color: #888;
+      text-align: center;
+    }
+    .dashboard-charts {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 2rem;
+      margin-bottom: 2.5rem;
+    }
+    .chart-card {
+      background: #fff;
+      border-radius: 12px;
+      box-shadow: 0 2px 12px #0001;
+      padding: 1.5rem 1rem 2rem 1rem;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      width: 50%;
+      min-width: 180px;
+      max-width: 240px;
+      margin: 0 auto;
+    }
+    .chart-card h3 {
+      font-size: 1.05rem;
+      font-weight: 600;
+      margin-bottom: 0.7rem;
+      color: #2196F3;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+    .chart-card h3 i {
+      font-size: 0.65rem;
+      color: #888;
+      margin-right: 0.15rem;
+      vertical-align: middle;
+    }
+    .recent-posts {
+      background: #fff;
+      border-radius: 12px;
+      box-shadow: 0 2px 12px #0001;
+      padding: 1.5rem 1.5rem 2rem 1.5rem;
+      margin-bottom: 2rem;
+    }
+    .recent-posts h3 {
+      font-size: 1.2rem;
+      font-weight: 700;
+      color: #FF9800;
+      margin-bottom: 1rem;
+    }
+    #recent-posts-list {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+    #recent-posts-list li {
+      padding: 0.7rem 0;
+      border-bottom: 1px solid #eee;
+      font-size: 1.05rem;
+      color: #333;
+    }
+    #recent-posts-list li:last-child { border-bottom: none; }
+    @media (max-width: 1100px) {
+      .dashboard-grid { grid-template-columns: 1fr 1fr; }
+      .dashboard-charts { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 700px) {
+      .dashboard-grid { grid-template-columns: 1fr; }
+      .dashboard-charts { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="admin-container">
+    <aside class="admin-sidebar">
+      <h2>Admin Panel</h2>
+      <nav>
+        <ul>
+          <li><a href="#dashboard" class="active">Dashboard</a></li>
+          <li><a href="#articles">Articles</a></li>
+          <li><a href="#categories">Categories</a></li>
+          <li><a href="#languages">Languages</a></li>
+          <li><a href="#users">Users</a></li>
+          <li><a href="#analytics">Analytics</a></li>
+        </ul>
+      </nav>
+    </aside>
+    <main class="admin-main" id="admin-main">
+      <!-- Dashboard Content -->
+      <section class="dashboard-grid">
+        <div class="metric-card orange">
+          <div class="icon"><i class="fas fa-book"></i></div>
+          <div class="metric-value" id="total-articles">0</div>
+          <div class="metric-label">Total Articles</div>
+          <div class="metric-subtext">Number of published articles</div>
+        </div>
+        <div class="metric-card blue">
+          <div class="icon"><i class="fas fa-folder"></i></div>
+          <div class="metric-value" id="total-categories">0</div>
+          <div class="metric-label">Categories</div>
+          <div class="metric-subtext">Number of news categories</div>
+        </div>
+        <div class="metric-card green">
+          <div class="icon"><i class="fas fa-globe"></i></div>
+          <div class="metric-value" id="total-languages">0</div>
+          <div class="metric-label">Languages</div>
+          <div class="metric-subtext">Number of supported languages</div>
+        </div>
+        <div class="metric-card gray">
+          <div class="icon"><i class="fas fa-users"></i></div>
+          <div class="metric-value" id="total-users">0</div>
+          <div class="metric-label">Registered Users</div>
+          <div class="metric-subtext">Total registered users (dummy)</div>
+        </div>
+      </section>
+      <section class="dashboard-charts">
+        <div class="chart-card">
+          <h3>Articles by Language</h3>
+          <canvas id="langBarChart"></canvas>
+        </div>
+        <div class="chart-card">
+          <h3>Articles by Category</h3>
+          <canvas id="catPieChart"></canvas>
+        </div>
+      </section>
+      <section class="recent-posts">
+        <h3>Recent Posts</h3>
+        <ul id="recent-posts-list"></ul>
+      </section>
+    </main>
+  </div>
+
+  <!-- Scripts -->
+  <script src="assets/js/data.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>  
+  <script src="assets/js/articles.js"></script>
+  <script src="assets/js/categories.js"></script>
+  <script src="assets/js/languages.js"></script>
+  <script src="assets/js/users.js"></script>
+  <script src="assets/js/analytics.js"></script>
+
+  <!-- Dynamic Section Loader -->
+  <script>
+    // Dummy data for metrics and charts
+    const metrics = {
+      articles: 120,
+      categories: 5,
+      languages: 3,
+      users: 42
+    };
+    const articlesByLanguage = {
+      labels: ['English', 'Hindi', 'Gujarati'],
+      data: [50, 40, 30]
+    };
+    const articlesByCategory = {
+      labels: ['Technology', 'Environment', 'Business', 'Sports'],
+      data: [40, 20, 20, 20]
+    };
+    const recentPosts = [
+      { title: 'Tech Innovation in 2025', date: '21 June 2025' },
+      { title: 'Climate Change: The Next Decade', date: '20 June 2025' },
+      { title: 'Business Trends to Watch', date: '19 June 2025' },
+      { title: 'Sports Highlights: June', date: '18 June 2025' },
+      { title: 'New Language Support Added', date: '17 June 2025' }
+    ];
+
+    // --- Article Storage Helpers ---
+    function getArticles() {
+      return JSON.parse(localStorage.getItem('articles') || '[]');
+    }
+    function saveArticle(article) {
+      const articles = getArticles();
+      articles.unshift(article); // add to start
+      localStorage.setItem('articles', JSON.stringify(articles));
+    }
+    // --- Dashboard Render (uses localStorage) ---
+    function renderInitialDashboard() {
+      const articles = getArticles();
+      document.getElementById('total-articles').textContent = articles.length;
+      document.getElementById('total-categories').textContent = metrics.categories;
+      document.getElementById('total-languages').textContent = metrics.languages;
+      document.getElementById('total-users').textContent = metrics.users;
+      // Chart rendering logic (dummy, can be improved to use real data)
+      new Chart(document.getElementById('langBarChart').getContext('2d'), {
+        type: 'bar',
+        data: {
+          labels: articlesByLanguage.labels,
+          datasets: [{
+            label: 'Articles',
+            data: articlesByLanguage.data,
+            backgroundColor: ['#FF9800', '#2196F3', '#43A047']
+          }]
+        },
+        options: {
+          responsive: true,
+          plugins: { legend: { display: false }, tooltip: { enabled: true } },
+          scales: { y: { beginAtZero: true } }
+        }
+      });
+      new Chart(document.getElementById('catPieChart').getContext('2d'), {
+        type: 'pie',
+        data: {
+          labels: articlesByCategory.labels,
+          datasets: [{
+            data: articlesByCategory.data,
+            backgroundColor: ['#FF9800', '#2196F3', '#43A047', '#888']
+          }]
+        },
+        options: {
+          responsive: true,
+          plugins: { legend: { position: 'bottom' }, tooltip: { enabled: true } }
+        }
+      });
+      // Render recent posts from localStorage
+      const postsList = document.getElementById('recent-posts-list');
+      postsList.innerHTML = '';
+      articles.slice(0, 5).forEach((post, idx) => {
+        const li = document.createElement('li');
+        li.innerHTML = `${post.title} (${post.publishDate || 'No date'}) <a href="index.html?article=${idx}" target="_blank" style="color:#2196F3;text-decoration:underline;font-size:0.97em;margin-left:8px;">View</a>`;
+        postsList.appendChild(li);
+      });
+    }
+
+    document.addEventListener('DOMContentLoaded', function () {
+      // Helper: Remove active from all sidebar links
+      function clearSidebarActive() {
+        document.querySelectorAll('.admin-sidebar nav a').forEach(l => l.classList.remove('active'));
+      }
+      // Helper: Set active link by hash
+      function setSidebarActive(hash) {
+        const link = document.querySelector('.admin-sidebar nav a[href="' + hash + '"]');
+        if (link) link.classList.add('active');
+      }
+      // Section loader
+      function loadSection(hash) {
+        switch (hash) {
+          case '#dashboard':
+            document.getElementById('admin-main').innerHTML = `
+              <section class="dashboard-grid">
+                <div class="metric-card orange">
+                  <div class="icon"><i class="fas fa-book"></i></div>
+                  <div class="metric-value" id="total-articles">0</div>
+                  <div class="metric-label">Total Articles</div>
+                  <div class="metric-subtext">Number of published articles</div>
+                </div>
+                <div class="metric-card blue">
+                  <div class="icon"><i class="fas fa-folder"></i></div>
+                  <div class="metric-value" id="total-categories">0</div>
+                  <div class="metric-label">Categories</div>
+                  <div class="metric-subtext">Number of news categories</div>
+                </div>
+                <div class="metric-card green">
+                  <div class="icon"><i class="fas fa-globe"></i></div>
+                  <div class="metric-value" id="total-languages">0</div>
+                  <div class="metric-label">Languages</div>
+                  <div class="metric-subtext">Number of supported languages</div>
+                </div>
+                <div class="metric-card gray">
+                  <div class="icon"><i class="fas fa-users"></i></div>
+                  <div class="metric-value" id="total-users">0</div>
+                  <div class="metric-label">Registered Users</div>
+                  <div class="metric-subtext">Total registered users (dummy)</div>
+                </div>
+              </section>
+              <section class="dashboard-charts">
+                <div class="chart-card">
+                  <h3>Articles by Language</h3>
+                  <canvas id="langBarChart"></canvas>
+                </div>
+                <div class="chart-card">
+                  <h3>Articles by Category</h3>
+                  <canvas id="catPieChart"></canvas>
+                </div>
+              </section>
+              <section class="recent-posts">
+                <h3>Recent Posts</h3>
+                <ul id="recent-posts-list"></ul>
+              </section>
+            `;
+            if (typeof renderInitialDashboard === 'function') renderInitialDashboard();
+            break;
+          case '#articles':
+            // Fetch and inject the article form from article-articles.html
+            fetch('article-articles.html')
+              .then(res => res.text())
+              .then(html => {
+                // Extract only the .container div (the form)
+                const temp = document.createElement('div');
+                temp.innerHTML = html;
+                const formContainer = temp.querySelector('.container');
+                // Classic, clean, and concise style for the Articles form
+                const classicStyle = `
+                  <style>
+                    .classic-article-form {
+                      max-width: 600px;
+                      margin: 2.5rem auto;
+                      background: #fff;
+                      border-radius: 10px;
+                      box-shadow: 0 2px 16px #0002;
+                      padding: 2.5rem 2rem 2rem 2rem;
+                      font-family: 'Segoe UI', Arial, sans-serif;
+                      border: 1px solid #e0e0e0;
+                    }
+                    .classic-article-form h2 {
+                      text-align: center;
+                      color: #2196F3;
+                      font-size: 2rem;
+                      margin-bottom: 1.5rem;
+                      font-weight: 700;
+                      letter-spacing: 1px;
+                    }
+                    .classic-article-form label {
+                      font-weight: 600;
+                      margin-bottom: 0.3rem;
+                      display: block;
+                      color: #333;
+                    }
+                    .classic-article-form input[type="text"],
+                    .classic-article-form input[type="date"],
+                    .classic-article-form select,
+                    .classic-article-form textarea {
+                      width: 100%;
+                      padding: 10px 12px;
+                      border: 1px solid #bbb;
+                      border-radius: 5px;
+                      font-size: 1rem;
+                      margin-bottom: 1.1rem;
+                      background: #fafbfc;
+                      transition: border 0.2s;
+                    }
+                    .classic-article-form input[type="text"]:focus,
+                    .classic-article-form input[type="date"]:focus,
+                    .classic-article-form select:focus,
+                    .classic-article-form textarea:focus {
+                      border-color: #2196F3;
+                      outline: none;
+                    }
+                    .classic-article-form textarea {
+                      min-height: 120px;
+                      resize: vertical;
+                    }
+                    .classic-article-form .form-row {
+                      display: flex;
+                      gap: 1.2rem;
+                    }
+                    .classic-article-form .form-row > div {
+                      flex: 1;
+                    }
+                    .classic-article-form .toggle-group {
+                      display: flex;
+                      gap: 1.5rem;
+                      margin-bottom: 1.2rem;
+                    }
+                    .classic-article-form .toggle-group label {
+                      font-weight: 400;
+                      color: #444;
+                      display: flex;
+                      align-items: center;
+                      gap: 0.4rem;
+                    }
+                    .classic-article-form .image-upload {
+                      border: 1.5px dashed #bbb;
+                      padding: 1.2rem;
+                      text-align: center;
+                      border-radius: 6px;
+                      color: #888;
+                      background: #fafbfc;
+                      margin-bottom: 0.7rem;
+                      position: relative;
+                    }
+                    .classic-article-form .image-upload input[type="file"] {
+                      position: absolute;
+                      opacity: 0;
+                      width: 100%;
+                      height: 100%;
+                      left: 0; top: 0;
+                      cursor: pointer;
+                    }
+                    .classic-article-form .preview-text {
+                      margin-top: 0.5rem;
+                      font-size: 0.97rem;
+                      color: #2196F3;
+                    }
+                    .classic-article-form .divider {
+                      border-bottom: 1px solid #eee;
+                      margin: 1.5rem 0 1.2rem 0;
+                    }
+                    .classic-article-form .btn-publish {
+                      background: #2196F3;
+                      color: #fff;
+                      border: none;
+                      border-radius: 5px;
+                      padding: 0.85rem 0;
+                      font-size: 1.1rem;
+                      font-weight: 600;
+                      cursor: pointer;
+                      width: 100%;
+                      margin-top: 0.7rem;
+                      transition: background 0.2s;
+                    }
+                    .classic-article-form .btn-publish:hover {
+                      background: #1769aa;
+                    }
+                    @media (max-width: 700px) {
+                      .classic-article-form { padding: 1.2rem 0.5rem; }
+                      .classic-article-form .form-row { flex-direction: column; gap: 0; }
+                    }
+                  </style>
+                `;
+                // Always show the form at the top, then the articles list below
+                let classicForm = `<div class=\"classic-article-form\">
+                  <h2>Publish New Article</h2>
+                  <form id=\"articleForm\">
+                    <label for=\"title\">Title</label>
+                    <input type=\"text\" id=\"title\" name=\"title\" required placeholder=\"Enter article title\" />
+                    <label for=\"content\">Content (Markdown Supported)</label>
+                    <textarea id=\"content\" name=\"content\" required placeholder=\"Write your article content here...\"></textarea>
+                    <div class=\"divider\"></div>
+                    <div class=\"form-row\">
+                      <div>
+                        <label for=\"category\">Category</label>
+                        <select id=\"category\" name=\"category\" required>
+                          <option value=\"\">Select Category</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label for=\"language\">Language</label>
+                        <select id=\"language\" name=\"language\">
+                          <option value=\"English\">English</option>
+                          <option value=\"Hindi\">Hindi</option>
+                          <option value=\"Gujarati\">Gujarati</option>
+                        </select>
+                      </div>
+                    </div>
+                    <div class=\"form-row\">
+                      <div>
+                        <label for=\"author\">Author Name</label>
+                        <input type=\"text\" id=\"author\" name=\"author\" value=\"Admin User\" readonly />
+                      </div>
+                      <div>
+                        <label for=\"tags\">Tags (comma-separated)</label>
+                        <input type=\"text\" id=\"tags\" name=\"tags\" placeholder=\"politics, news\" />
+                      </div>
+                    </div>
+                    <label for=\"publishDate\">Publish Date</label>
+                    <input type=\"date\" id=\"publishDate\" name=\"publishDate\" />
+                    <div class=\"toggle-group\">
+                      <label><input type=\"checkbox\" name=\"trending\" /> Trending</label>
+                      <label><input type=\"checkbox\" name=\"breakingNews\" /> Breaking News</label>
+                    </div>
+                    <label>Featured Image</label>
+                    <div class=\"image-upload\">
+                      <span id=\"imageLabel\">No image selected</span>
+                      <input type=\"file\" id=\"image\" name=\"image\" accept=\"image/*\" />
+                    </div>
+                    <div id=\"imagePreview\" class=\"preview-text\"></div>
+                    <button type=\"submit\" class=\"btn-publish\">Publish Article</button>
+                  </form>
+                  <div class=\"divider\"></div>
+                  <h3 style='text-align:center;margin:1.5rem 0 1rem 0;font-size:1.2rem;color:#2196F3;'>All Articles</h3>
+                  <div id=\"articlesList\"></div>
+                  <div class=\"divider\"></div>
+                  <h2 style='text-align:center;color:#FF9800;font-size:1.3rem;margin:2.5rem 0 1.2rem 0;'>Carousel Images</h2>
+                  <form id=\"carouselForm\" style='margin-bottom:1.5rem;'>
+                    <label style='font-weight:600;'>Add Images for Top Carousel (max 6)</label>
+                    <input type=\"file\" id=\"carouselImagesInput\" accept=\"image/*\" multiple style='margin-bottom:1rem;'>
+                    <div id=\"carouselImagesPreview\" style='display:flex;gap:1rem;flex-wrap:wrap;margin-top:0.7rem;'></div>
+                    <button type=\"submit\" class=\"btn-publish\" style='background:#FF9800;margin-top:1.2rem;'>Save Carousel Images</button>
+                  </form>
+                </div>`;
+                document.getElementById('admin-main').innerHTML = classicStyle + classicForm;
+                // Re-inject the form JS for category fetching, image upload, preview, and form submission
+                const script = document.createElement('script');
+                script.type = 'text/javascript';
+                script.textContent = `
+                  const categorySelect = document.getElementById('category');
+                  const imageInput = document.getElementById('image');
+                  const imageLabel = document.getElementById('imageLabel');
+                  const imagePreview = document.getElementById('imagePreview');
+                  const form = document.getElementById('articleForm');
+                  const articlesList = document.getElementById('articlesList');
+                  const carouselImagesInput = document.getElementById('carouselImagesInput');
+                  const carouselImagesPreview = document.getElementById('carouselImagesPreview');
+                  const carouselForm = document.getElementById('carouselForm');
+                  let imageBase64 = '';
+                  // --- Article Storage Helpers ---
+                  function getArticles() {
+                    return JSON.parse(localStorage.getItem('articles') || '[]');
+                  }
+                  function saveArticle(article) {
+                    const articles = getArticles();
+                    articles.unshift(article);
+                    localStorage.setItem('articles', JSON.stringify(articles));
+                  }
+                  // Carousel Images logic
+                  function getCarouselImages() {
+                    return JSON.parse(localStorage.getItem('carouselImages') || '[]');
+                  }
+                  function setCarouselImages(arr) {
+                    localStorage.setItem('carouselImages', JSON.stringify(arr));
+                  }
+                  function renderCarouselImagesPreview() {
+                    const imgs = getCarouselImages();
+                    carouselImagesPreview.innerHTML = '';
+                    imgs.forEach((img, idx) => {
+                      const div = document.createElement('div');
+                      div.style.position = 'relative';
+                      div.innerHTML = \`<img src='\${img}' style='width:110px;height:60px;object-fit:cover;border-radius:6px;box-shadow:0 2px 8px #0001;'><button data-idx='\${idx}' style='position:absolute;top:2px;right:2px;background:#fff;color:#e53935;border:none;border-radius:50%;width:22px;height:22px;cursor:pointer;font-weight:bold;font-size:1.1em;'>×</button>\`;
+                      carouselImagesPreview.appendChild(div);
+                    });
+                  }
+                  carouselImagesPreview.addEventListener('click', function(e) {
+                    if (e.target.tagName === 'BUTTON') {
+                      const idx = +e.target.getAttribute('data-idx');
+                      let imgs = getCarouselImages();
+                      imgs.splice(idx, 1);
+                      setCarouselImages(imgs);
+                      renderCarouselImagesPreview();
+                    }
+                  });
+                  carouselImagesInput.addEventListener('change', function() {
+                    const files = Array.from(carouselImagesInput.files);
+                    if (!files.length) return;
+                    let imgs = getCarouselImages();
+                    if (imgs.length + files.length > 6) {
+                      alert('Maximum 6 images allowed in carousel.');
+                      return;
+                    }
+                    let loaded = 0;
+                    files.forEach(file => {
+                      const reader = new FileReader();
+                      reader.onload = function(e) {
+                        imgs.push(e.target.result);
+                        loaded++;
+                        if (loaded === files.length) {
+                          setCarouselImages(imgs);
+                          renderCarouselImagesPreview();
+                        }
+                      };
+                      reader.readAsDataURL(file);
+                    });
+                    carouselImagesInput.value = '';
+                  });
+                  form.addEventListener('submit', async function(e) {
+                    e.preventDefault();
+                    const formData = new FormData(form);
+                    const data = {};
+                    formData.forEach(function(value, key) {
+                      if (key === 'trending' || key === 'breakingNews') {
+                        data[key] = formData.has(key);
+                      } else {
+                        data[key] = value;
+                      }
+                    });
+                    if (imageBase64) data.img = imageBase64;
+                    saveArticle(data);
+                    alert('Article submitted successfully (mock). Check console for data.');
+                    form.reset();
+                    imageLabel.textContent = 'No image selected';
+                    imagePreview.innerHTML = '';
+                    imageBase64 = '';
+                    renderArticlesList();
+                    // Update dashboard if open
+                    if (window.location.hash === '#dashboard' && typeof window.renderInitialDashboard === 'function') window.renderInitialDashboard();
+                  });
+                  carouselForm.addEventListener('submit', function(e) {
+                    e.preventDefault();
+                    alert('Carousel images saved!');
+                    renderCarouselImagesPreview();
+                  });
+                  // Fetch categories for articles
+                  const fetchCategories = async () => {
+                    try {
+                      const response = await fetch('/api/categories');
+                      const categories = await response.json();
+                      categories.forEach(cat => {
+                        const option = document.createElement('option');
+                        option.value = cat;
+                        option.textContent = cat;
+                        categorySelect.appendChild(option);
+                      });
+                    } catch (err) {
+                      // Fallback: add default categories
+                      ['Technology','Business','Sports','Environment','Politics','Education'].forEach(function(cat) {
+                        const option = document.createElement('option');
+                        option.value = cat;
+                        option.textContent = cat;
+                        categorySelect.appendChild(option);
+                      });
+                    }
+                  };
+                  function renderArticlesList() {
+                    const articles = getArticles();
+                    if (!articles.length) { articlesList.innerHTML = '<div style="color:#888;text-align:center;">No articles yet.</div>'; return; }
+                    var html = '<table style="width:100%;border-collapse:collapse;font-size:0.98rem;">';
+                    html += '<tr style="background:#f5f5f5;"><th style="padding:8px 4px;border-bottom:1px solid #eee;">Title</th><th style="padding:8px 4px;border-bottom:1px solid #eee;">Category</th><th style="padding:8px 4px;border-bottom:1px solid #eee;">Language</th><th style="padding:8px 4px;border-bottom:1px solid #eee;">Publish Date</th><th style="padding:8px 4px;border-bottom:1px solid #eee;">View</th></tr>';
+                    articles.forEach(function(a, idx) {
+                      html += '<tr>' +
+                        '<td style="padding:7px 4px;border-bottom:1px solid #f0f0f0;">' + a.title + '</td>' +
+                        '<td style="padding:7px 4px;border-bottom:1px solid #f0f0f0;">' + a.category + '</td>' +
+                        '<td style="padding:7px 4px;border-bottom:1px solid #f0f0f0;">' + a.language + '</td>' +
+                        '<td style="padding:7px 4px;border-bottom:1px solid #f0f0f0;">' + (a.publishDate || '') + '</td>' +
+                        '<td style="padding:7px 4px;border-bottom:1px solid #f0f0f0;"><a href="index.html?article=' + idx + '" target="_blank" style="color:#2196F3;text-decoration:underline;font-weight:500;">View</a></td>' +
+                        '</tr>';
+                    });
+                    html += '</table>';
+                    articlesList.innerHTML = html;
+                  }
+                  imageInput.addEventListener('change', function() {
+                    if (imageInput.files.length > 0) {
+                      imageLabel.textContent = 'Selected: ' + imageInput.files[0].name;
+                      const reader = new FileReader();
+                      reader.onload = function(e) {
+                        imageBase64 = e.target.result;
+                        imagePreview.innerHTML = '<img src="' + imageBase64 + '" style="max-width:120px;max-height:80px;border-radius:6px;box-shadow:0 2px 8px #0001;">';
+                      };
+                      reader.readAsDataURL(imageInput.files[0]);
+                    } else {
+                      imageLabel.textContent = 'No image selected';
+                      imageBase64 = '';
+                      imagePreview.innerHTML = '';
+                    }
+                  });
+                  fetchCategories();
+                  renderArticlesList();
+                  renderCarouselImagesPreview();
+                `;
+                document.getElementById('admin-main').appendChild(script);
+              })
+              .catch(function() {
+                document.getElementById('admin-main').innerHTML = '<div style="padding:2rem;text-align:center;">Failed to load Articles form.</div>';
+              });
+            break;
+          case '#categories':
+            if (typeof window.renderCategories === 'function') window.renderCategories();
+            else showNotFound();
+            break;
+          case '#languages':
+            if (typeof window.renderLanguages === 'function') window.renderLanguages();
+            else showNotFound();
+            break;
+          case '#users':
+            if (typeof window.renderUsers === 'function') window.renderUsers();
+            else showNotFound();
+            break;
+          case '#analytics':
+            if (typeof window.renderAnalytics === 'function') window.renderAnalytics();
+            else showNotFound();
+            break;
+          default:
+            showNotFound();
+        }
+      }
+      function showNotFound() {
+        document.getElementById('admin-main').innerHTML = `
+          <div style="padding:2rem;text-align:center;">
+            Section not found or not implemented yet.
+          </div>`;
+      }
+      // Sidebar click handler
+      document.querySelectorAll('.admin-sidebar nav a').forEach(link => {
+        link.addEventListener('click', function (e) {
+          const hash = this.getAttribute('href');
+          if (!hash.startsWith('#')) return;
+          e.preventDefault();
+          clearSidebarActive();
+          setSidebarActive(hash);
+          loadSection(hash);
+        });
+      });
+      // On page load: load section from hash or dashboard
+      let initialHash = window.location.hash;
+      if (!initialHash || !document.querySelector('.admin-sidebar nav a[href="' + initialHash + '"]')) {
+        initialHash = '#dashboard';
+      }
+      clearSidebarActive();
+      setSidebarActive(initialHash);
+      loadSection(initialHash);
+    });
+  </script>
+</body>
+</html>
