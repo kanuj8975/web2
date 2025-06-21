@@ -208,6 +208,55 @@
   <script src="assets/js/languages.js"></script>
   <script src="assets/js/users.js"></script>
   <script src="assets/js/analytics.js"></script>
+  <!-- Firebase App (the core Firebase SDK) -->
+  <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-app-compat.js"></script>
+  <!-- Firebase Firestore -->
+  <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore-compat.js"></script>
+  <script>
+    // TODO: Fill in your Firebase config below
+    const firebaseConfig = {
+      apiKey: "AIzaSyBIkMsj6iQoUNoywiS3oBp4PUWKReSnX2w",
+      authDomain: "modern-media-d38df.firebaseapp.com",
+      projectId: "modern-media-d38df",
+      storageBucket: "modern-media-d38df.appspot.com",
+      messagingSenderId: "514430170094",
+      appId: "1:514430170094:web:d0f30c9f3a946cd256d4ff"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+
+    // --- Firestore CRUD helpers ---
+    // Articles
+    async function getArticlesFS() {
+      const snap = await db.collection('articles').orderBy('publishDate', 'desc').get();
+      return snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    }
+    async function saveArticleFS(article) {
+      try {
+        const result = await db.collection('articles').add(article);
+        console.log('Article saved to Firestore with ID:', result.id);
+        alert('Article saved to Firestore! ID: ' + result.id);
+        return result;
+      } catch (err) {
+        console.error('Error saving article to Firestore:', err);
+        alert('Error saving article to Firestore: ' + (err && err.message ? err.message : err));
+        throw err;
+      }
+    }
+    // Carousel Images
+    async function getCarouselImagesFS() {
+      const doc = await db.collection('meta').doc('carouselImages').get();
+      return doc.exists ? doc.data().images || [] : [];
+    }
+    async function setCarouselImagesFS(images) {
+      await db.collection('meta').doc('carouselImages').set({ images });
+    }
+    // Make Firestore helpers globally available
+    window.saveArticleFS = saveArticleFS;
+    window.getArticlesFS = getArticlesFS;
+    window.getCarouselImagesFS = getCarouselImagesFS;
+    window.setCarouselImagesFS = setCarouselImagesFS;
+  </script>
 
   <!-- Dynamic Section Loader -->
   <script>
@@ -243,9 +292,9 @@
       articles.unshift(article); // add to start
       localStorage.setItem('articles', JSON.stringify(articles));
     }
-    // --- Dashboard Render (uses localStorage) ---
-    function renderInitialDashboard() {
-      const articles = getArticles();
+    // --- Dashboard Render (uses Firestore) ---
+    async function renderInitialDashboard() {
+      const articles = await getArticlesFS();
       document.getElementById('total-articles').textContent = articles.length;
       document.getElementById('total-categories').textContent = metrics.categories;
       document.getElementById('total-languages').textContent = metrics.languages;
@@ -281,7 +330,7 @@
           plugins: { legend: { position: 'bottom' }, tooltip: { enabled: true } }
         }
       });
-      // Render recent posts from localStorage
+      // Render recent posts from Firestore
       const postsList = document.getElementById('recent-posts-list');
       postsList.innerHTML = '';
       articles.slice(0, 5).forEach((post, idx) => {
@@ -350,356 +399,295 @@
             if (typeof renderInitialDashboard === 'function') renderInitialDashboard();
             break;
           case '#articles':
-            // Fetch and inject the article form from article-articles.html
-            fetch('article-articles.html')
-              .then(res => res.text())
-              .then(html => {
-                // Extract only the .container div (the form)
-                const temp = document.createElement('div');
-                temp.innerHTML = html;
-                const formContainer = temp.querySelector('.container');
-                // Classic, clean, and concise style for the Articles form
-                const classicStyle = `
-                  <style>
-                    .classic-article-form {
-                      max-width: 600px;
-                      margin: 2.5rem auto;
-                      background: #fff;
-                      border-radius: 10px;
-                      box-shadow: 0 2px 16px #0002;
-                      padding: 2.5rem 2rem 2rem 2rem;
-                      font-family: 'Segoe UI', Arial, sans-serif;
-                      border: 1px solid #e0e0e0;
-                    }
-                    .classic-article-form h2 {
-                      text-align: center;
-                      color: #2196F3;
-                      font-size: 2rem;
-                      margin-bottom: 1.5rem;
-                      font-weight: 700;
-                      letter-spacing: 1px;
-                    }
-                    .classic-article-form label {
-                      font-weight: 600;
-                      margin-bottom: 0.3rem;
-                      display: block;
-                      color: #333;
-                    }
-                    .classic-article-form input[type="text"],
-                    .classic-article-form input[type="date"],
-                    .classic-article-form select,
-                    .classic-article-form textarea {
-                      width: 100%;
-                      padding: 10px 12px;
-                      border: 1px solid #bbb;
-                      border-radius: 5px;
-                      font-size: 1rem;
-                      margin-bottom: 1.1rem;
-                      background: #fafbfc;
-                      transition: border 0.2s;
-                    }
-                    .classic-article-form input[type="text"]:focus,
-                    .classic-article-form input[type="date"]:focus,
-                    .classic-article-form select:focus,
-                    .classic-article-form textarea:focus {
-                      border-color: #2196F3;
-                      outline: none;
-                    }
-                    .classic-article-form textarea {
-                      min-height: 120px;
-                      resize: vertical;
-                    }
-                    .classic-article-form .form-row {
-                      display: flex;
-                      gap: 1.2rem;
-                    }
-                    .classic-article-form .form-row > div {
-                      flex: 1;
-                    }
-                    .classic-article-form .toggle-group {
-                      display: flex;
-                      gap: 1.5rem;
-                      margin-bottom: 1.2rem;
-                    }
-                    .classic-article-form .toggle-group label {
-                      font-weight: 400;
-                      color: #444;
-                      display: flex;
-                      align-items: center;
-                      gap: 0.4rem;
-                    }
-                    .classic-article-form .image-upload {
-                      border: 1.5px dashed #bbb;
-                      padding: 1.2rem;
-                      text-align: center;
-                      border-radius: 6px;
-                      color: #888;
-                      background: #fafbfc;
-                      margin-bottom: 0.7rem;
-                      position: relative;
-                    }
-                    .classic-article-form .image-upload input[type="file"] {
-                      position: absolute;
-                      opacity: 0;
-                      width: 100%;
-                      height: 100%;
-                      left: 0; top: 0;
-                      cursor: pointer;
-                    }
-                    .classic-article-form .preview-text {
-                      margin-top: 0.5rem;
-                      font-size: 0.97rem;
-                      color: #2196F3;
-                    }
-                    .classic-article-form .divider {
-                      border-bottom: 1px solid #eee;
-                      margin: 1.5rem 0 1.2rem 0;
-                    }
-                    .classic-article-form .btn-publish {
-                      background: #2196F3;
-                      color: #fff;
-                      border: none;
-                      border-radius: 5px;
-                      padding: 0.85rem 0;
-                      font-size: 1.1rem;
-                      font-weight: 600;
-                      cursor: pointer;
-                      width: 100%;
-                      margin-top: 0.7rem;
-                      transition: background 0.2s;
-                    }
-                    .classic-article-form .btn-publish:hover {
-                      background: #1769aa;
-                    }
-                    @media (max-width: 700px) {
-                      .classic-article-form { padding: 1.2rem 0.5rem; }
-                      .classic-article-form .form-row { flex-direction: column; gap: 0; }
-                    }
-                  </style>
-                `;
-                // Always show the form at the top, then the articles list below
-                let classicForm = `<div class=\"classic-article-form\">
-                  <h2>Publish New Article</h2>
-                  <form id=\"articleForm\">
-                    <label for=\"title\">Title</label>
-                    <input type=\"text\" id=\"title\" name=\"title\" required placeholder=\"Enter article title\" />
-                    <label for=\"content\">Content (Markdown Supported)</label>
-                    <textarea id=\"content\" name=\"content\" required placeholder=\"Write your article content here...\"></textarea>
-                    <div class=\"divider\"></div>
-                    <div class=\"form-row\">
-                      <div>
-                        <label for=\"category\">Category</label>
-                        <select id=\"category\" name=\"category\" required>
-                          <option value=\"\">Select Category</option>
-                        </select>
-                      </div>
-                      <div>
-                        <label for=\"language\">Language</label>
-                        <select id=\"language\" name=\"language\">
-                          <option value=\"English\">English</option>
-                          <option value=\"Hindi\">Hindi</option>
-                          <option value=\"Gujarati\">Gujarati</option>
-                        </select>
-                      </div>
-                    </div>
-                    <div class=\"form-row\">
-                      <div>
-                        <label for=\"author\">Author Name</label>
-                        <input type=\"text\" id=\"author\" name=\"author\" value=\"Admin User\" readonly />
-                      </div>
-                      <div>
-                        <label for=\"tags\">Tags (comma-separated)</label>
-                        <input type=\"text\" id=\"tags\" name=\"tags\" placeholder=\"politics, news\" />
-                      </div>
-                    </div>
-                    <label for=\"publishDate\">Publish Date</label>
-                    <input type=\"date\" id=\"publishDate\" name=\"publishDate\" />
-                    <div class=\"toggle-group\">
-                      <label><input type=\"checkbox\" name=\"trending\" /> Trending</label>
-                      <label><input type=\"checkbox\" name=\"breakingNews\" /> Breaking News</label>
-                    </div>
-                    <label>Featured Image</label>
-                    <div class=\"image-upload\">
-                      <span id=\"imageLabel\">No image selected</span>
-                      <input type=\"file\" id=\"image\" name=\"image\" accept=\"image/*\" />
-                    </div>
-                    <div id=\"imagePreview\" class=\"preview-text\"></div>
-                    <button type=\"submit\" class=\"btn-publish\">Publish Article</button>
-                  </form>
-                  <div class=\"divider\"></div>
-                  <h3 style='text-align:center;margin:1.5rem 0 1rem 0;font-size:1.2rem;color:#2196F3;'>All Articles</h3>
-                  <div id=\"articlesList\"></div>
-                  <div class=\"divider\"></div>
-                  <h2 style='text-align:center;color:#FF9800;font-size:1.3rem;margin:2.5rem 0 1.2rem 0;'>Carousel Images</h2>
-                  <form id=\"carouselForm\" style='margin-bottom:1.5rem;'>
-                    <label style='font-weight:600;'>Add Images for Top Carousel (max 6)</label>
-                    <input type=\"file\" id=\"carouselImagesInput\" accept=\"image/*\" multiple style='margin-bottom:1rem;'>
-                    <div id=\"carouselImagesPreview\" style='display:flex;gap:1rem;flex-wrap:wrap;margin-top:0.7rem;'></div>
-                    <button type=\"submit\" class=\"btn-publish\" style='background:#FF9800;margin-top:1.2rem;'>Save Carousel Images</button>
-                  </form>
-                </div>`;
-                document.getElementById('admin-main').innerHTML = classicStyle + classicForm;
-                // Re-inject the form JS for category fetching, image upload, preview, and form submission
-                const script = document.createElement('script');
-                script.type = 'text/javascript';
-                script.textContent = `
-                  const categorySelect = document.getElementById('category');
-                  const imageInput = document.getElementById('image');
-                  const imageLabel = document.getElementById('imageLabel');
-                  const imagePreview = document.getElementById('imagePreview');
-                  const form = document.getElementById('articleForm');
-                  const articlesList = document.getElementById('articlesList');
-                  const carouselImagesInput = document.getElementById('carouselImagesInput');
-                  const carouselImagesPreview = document.getElementById('carouselImagesPreview');
-                  const carouselForm = document.getElementById('carouselForm');
-                  let imageBase64 = '';
-                  // --- Article Storage Helpers ---
-                  function getArticles() {
-                    return JSON.parse(localStorage.getItem('articles') || '[]');
-                  }
-                  function saveArticle(article) {
-                    const articles = getArticles();
-                    articles.unshift(article);
-                    localStorage.setItem('articles', JSON.stringify(articles));
-                  }
-                  // Carousel Images logic
-                  function getCarouselImages() {
-                    return JSON.parse(localStorage.getItem('carouselImages') || '[]');
-                  }
-                  function setCarouselImages(arr) {
-                    localStorage.setItem('carouselImages', JSON.stringify(arr));
-                  }
-                  function renderCarouselImagesPreview() {
-                    const imgs = getCarouselImages();
-                    carouselImagesPreview.innerHTML = '';
-                    imgs.forEach((img, idx) => {
-                      const div = document.createElement('div');
-                      div.style.position = 'relative';
-                      div.innerHTML = \`<img src='\${img}' style='width:110px;height:60px;object-fit:cover;border-radius:6px;box-shadow:0 2px 8px #0001;'><button data-idx='\${idx}' style='position:absolute;top:2px;right:2px;background:#fff;color:#e53935;border:none;border-radius:50%;width:22px;height:22px;cursor:pointer;font-weight:bold;font-size:1.1em;'>×</button>\`;
-                      carouselImagesPreview.appendChild(div);
-                    });
-                  }
-                  carouselImagesPreview.addEventListener('click', function(e) {
-                    if (e.target.tagName === 'BUTTON') {
-                      const idx = +e.target.getAttribute('data-idx');
-                      let imgs = getCarouselImages();
-                      imgs.splice(idx, 1);
-                      setCarouselImages(imgs);
-                      renderCarouselImagesPreview();
-                    }
-                  });
-                  carouselImagesInput.addEventListener('change', function() {
-                    const files = Array.from(carouselImagesInput.files);
-                    if (!files.length) return;
-                    let imgs = getCarouselImages();
-                    if (imgs.length + files.length > 6) {
-                      alert('Maximum 6 images allowed in carousel.');
-                      return;
-                    }
-                    let loaded = 0;
-                    files.forEach(file => {
-                      const reader = new FileReader();
-                      reader.onload = function(e) {
-                        imgs.push(e.target.result);
-                        loaded++;
-                        if (loaded === files.length) {
-                          setCarouselImages(imgs);
-                          renderCarouselImagesPreview();
-                        }
-                      };
-                      reader.readAsDataURL(file);
-                    });
-                    carouselImagesInput.value = '';
-                  });
-                  form.addEventListener('submit', async function(e) {
-                    e.preventDefault();
-                    const formData = new FormData(form);
-                    const data = {};
-                    formData.forEach(function(value, key) {
-                      if (key === 'trending' || key === 'breakingNews') {
-                        data[key] = formData.has(key);
-                      } else {
-                        data[key] = value;
+            // Inject the article form directly (no fetch)
+            const classicStyle = `
+              <style>
+                .classic-article-form { max-width: 600px; margin: 2.5rem auto; background: #fff; border-radius: 10px; box-shadow: 0 2px 16px #0002; padding: 2.5rem 2rem 2rem 2rem; font-family: 'Segoe UI', Arial, sans-serif; border: 1px solid #e0e0e0; }
+                .classic-article-form h2 { text-align: center; color: #2196F3; font-size: 2rem; margin-bottom: 1.5rem; font-weight: 700; letter-spacing: 1px; }
+                .classic-article-form label { font-weight: 600; margin-bottom: 0.3rem; display: block; color: #333; }
+                .classic-article-form input[type="text"], .classic-article-form input[type="date"], .classic-article-form select, .classic-article-form textarea { width: 100%; padding: 10px 12px; border: 1px solid #bbb; border-radius: 5px; font-size: 1rem; margin-bottom: 1.1rem; background: #fafbfc; transition: border 0.2s; }
+                .classic-article-form input[type="text"]:focus, .classic-article-form input[type="date"]:focus, .classic-article-form select:focus, .classic-article-form textarea:focus { border-color: #2196F3; outline: none; }
+                .classic-article-form textarea { min-height: 120px; resize: vertical; }
+                .classic-article-form .form-row { display: flex; gap: 1.2rem; }
+                .classic-article-form .form-row > div { flex: 1; }
+                .classic-article-form .toggle-group { display: flex; gap: 1.5rem; margin-bottom: 1.2rem; }
+                .classic-article-form .toggle-group label { font-weight: 400; color: #444; display: flex; align-items: center; gap: 0.4rem; }
+                .classic-article-form .image-upload { border: 1.5px dashed #bbb; padding: 1.2rem; text-align: center; border-radius: 6px; color: #888; background: #fafbfc; margin-bottom: 0.7rem; position: relative; }
+                .classic-article-form .image-upload input[type="file"] { position: absolute; opacity: 0; width: 100%; height: 100%; left: 0; top: 0; cursor: pointer; }
+                .classic-article-form .preview-text { margin-top: 0.5rem; font-size: 0.97rem; color: #2196F3; }
+                .classic-article-form .divider { border-bottom: 1px solid #eee; margin: 1.5rem 0 1.2rem 0; }
+                .classic-article-form .btn-publish { background: #2196F3; color: #fff; border: none; border-radius: 5px; padding: 0.85rem 0; font-size: 1.1rem; font-weight: 600; cursor: pointer; width: 100%; margin-top: 0.7rem; transition: background 0.2s; }
+                .classic-article-form .btn-publish:hover { background: #1769aa; }
+                @media (max-width: 700px) { .classic-article-form { padding: 1.2rem 0.5rem; } .classic-article-form .form-row { flex-direction: column; gap: 0; } }
+              </style>
+            `;
+            let classicForm = `<div class="classic-article-form">
+              <h2>Publish New Article</h2>
+              <form id="articleForm">
+                <label for="title">Title</label>
+                <input type="text" id="title" name="title" required placeholder="Enter article title" />
+                <label for="content">Content (Markdown Supported)</label>
+                <textarea id="content" name="content" required placeholder="Write your article content here..."></textarea>
+                <div class="divider"></div>
+                <div class="form-row">
+                  <div>
+                    <label for="category">Category</label>
+                    <select id="category" name="category" required>
+                      <option value="रिपोर्ट">रिपोर्ट</option>
+                      <option value="राजनीति">राजनीति</option>
+                      <option value="विचार">विचार</option>
+                      <option value="देश-समाज">देश-समाज</option>
+                      <option value="फ़ैक्ट-चेक">फ़ैक्ट-चेक</option>
+                      <option value="विविध विषय">विविध विषय</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label for="language">Language</label>
+                    <select id="language" name="language">
+                      <option value="English">English</option>
+                      <option value="Hindi">Hindi</option>
+                      <option value="Gujarati">Gujarati</option>
+                    </select>
+                  </div>
+                </div>
+                <div class="form-row">
+                  <div>
+                    <label for="author">Author Name</label>
+                    <input type="text" id="author" name="author" value="Admin User" readonly />
+                  </div>
+                  <div>
+                    <label for="tags">Tags (comma-separated)</label>
+                    <input type="text" id="tags" name="tags" placeholder="politics, news" />
+                  </div>
+                </div>
+                <label for="publishDate">Publish Date</label>
+                <input type="date" id="publishDate" name="publishDate" />
+                <div class="toggle-group">
+                  <label><input type="checkbox" name="trending" /> Trending</label>
+                  <label><input type="checkbox" name="breakingNews" /> Breaking News</label>
+                </div>
+                <label>Featured Image</label>
+                <div class="image-upload">
+                  <span id="imageLabel">No image selected</span>
+                  <input type="file" id="image" name="image" accept="image/*" />
+                </div>
+                <div id="imagePreview" class="preview-text"></div>
+                <button type="submit" class="btn-publish">Publish Article</button>
+              </form>
+              <div class="divider"></div>
+              <h3 style='text-align:center;margin:1.5rem 0 1rem 0;font-size:1.2rem;color:#2196F3;'>All Articles</h3>
+              <div id="articlesList"></div>
+              <div class="divider"></div>
+              <h2 style='text-align:center;color:#FF9800;font-size:1.3rem;margin:2.5rem 0 1.2rem 0;'>Carousel Images</h2>
+              <form id="carouselForm" style='margin-bottom:1.5rem;'>
+                <label style='font-weight:600;'>Add Images for Top Carousel (max 6)</label>
+                <input type="file" id="carouselImagesInput" accept="image/*" multiple style='margin-bottom:1rem;'>
+                <div id="carouselImagesPreview" style='display:flex;gap:1rem;flex-wrap:wrap;margin-top:0.7rem;'></div>
+                <button type="submit" class="btn-publish" style='background:#FF9800;margin-top:1.2rem;'>Save Carousel Images</button>
+              </form>
+            </div>`;
+            document.getElementById('admin-main').innerHTML = classicStyle + classicForm;
+            // Attach all handlers after DOM update
+            setTimeout(() => {
+              const categorySelect = document.getElementById('category');
+              const imageInput = document.getElementById('image');
+              const imageLabel = document.getElementById('imageLabel');
+              const imagePreview = document.getElementById('imagePreview');
+              const form = document.getElementById('articleForm');
+              const articlesList = document.getElementById('articlesList');
+              const carouselImagesInput = document.getElementById('carouselImagesInput');
+              const carouselImagesPreview = document.getElementById('carouselImagesPreview');
+              const carouselForm = document.getElementById('carouselForm');
+              let imageBase64 = '';
+              async function fetchCategories() {
+                let categories = await window.getCategoriesFS();
+                const mustHave = [
+                  'रिपोर्ट','राजनीति','विचार','देश-समाज','फ़ैक्ट-चेक','विविध विषय','और भी...','सहयोग करें',
+                  'Technology','Business','Sports','Environment','Politics','Education'
+                ];
+                let changed = false;
+                mustHave.forEach(cat => {
+                  if (!categories.includes(cat)) { categories.push(cat); changed = true; }
+                });
+                if (changed || !categories.length) await window.setCategoriesFS(categories);
+                categorySelect.innerHTML = '<option value="">Select Category</option>';
+                categories.forEach(cat => {
+                  const option = document.createElement('option');
+                  option.value = cat;
+                  option.textContent = cat;
+                  categorySelect.appendChild(option);
+                });
+              }
+              categorySelect.addEventListener('focus', fetchCategories);
+              function resizeImage(file, maxWidth = 1200, maxSizeKB = 200) {
+                return new Promise((resolve, reject) => {
+                  const img = new window.Image();
+                  const reader = new FileReader();
+                  reader.onload = function(e) {
+                    img.onload = function() {
+                      let width = img.width;
+                      let height = img.height;
+                      if (width > maxWidth) {
+                        height = Math.round(height * (maxWidth / width));
+                        width = maxWidth;
                       }
-                    });
-                    if (imageBase64) data.img = imageBase64;
-                    saveArticle(data);
-                    alert('Article submitted successfully (mock). Check console for data.');
-                    form.reset();
-                    imageLabel.textContent = 'No image selected';
-                    imagePreview.innerHTML = '';
-                    imageBase64 = '';
-                    renderArticlesList();
-                    // Update dashboard if open
-                    if (window.location.hash === '#dashboard' && typeof window.renderInitialDashboard === 'function') window.renderInitialDashboard();
-                  });
-                  carouselForm.addEventListener('submit', function(e) {
-                    e.preventDefault();
-                    alert('Carousel images saved!');
-                    renderCarouselImagesPreview();
-                  });
-                  // Fetch categories for articles
-                  const fetchCategories = async () => {
-                    try {
-                      const response = await fetch('/api/categories');
-                      const categories = await response.json();
-                      categories.forEach(cat => {
-                        const option = document.createElement('option');
-                        option.value = cat;
-                        option.textContent = cat;
-                        categorySelect.appendChild(option);
-                      });
-                    } catch (err) {
-                      // Fallback: add default categories
-                      ['Technology','Business','Sports','Environment','Politics','Education'].forEach(function(cat) {
-                        const option = document.createElement('option');
-                        option.value = cat;
-                        option.textContent = cat;
-                        categorySelect.appendChild(option);
-                      });
-                    }
+                      const canvas = document.createElement('canvas');
+                      canvas.width = width;
+                      canvas.height = height;
+                      const ctx = canvas.getContext('2d');
+                      ctx.drawImage(img, 0, 0, width, height);
+                      let quality = 0.92;
+                      let dataUrl = canvas.toDataURL('image/jpeg', quality);
+                      while (dataUrl.length / 1024 > maxSizeKB && quality > 0.5) {
+                        quality -= 0.07;
+                        dataUrl = canvas.toDataURL('image/jpeg', quality);
+                      }
+                      resolve(dataUrl);
+                    };
+                    img.onerror = reject;
+                    img.src = e.target.result;
                   };
-                  function renderArticlesList() {
-                    const articles = getArticles();
-                    if (!articles.length) { articlesList.innerHTML = '<div style="color:#888;text-align:center;">No articles yet.</div>'; return; }
-                    var html = '<table style="width:100%;border-collapse:collapse;font-size:0.98rem;">';
-                    html += '<tr style="background:#f5f5f5;"><th style="padding:8px 4px;border-bottom:1px solid #eee;">Title</th><th style="padding:8px 4px;border-bottom:1px solid #eee;">Category</th><th style="padding:8px 4px;border-bottom:1px solid #eee;">Language</th><th style="padding:8px 4px;border-bottom:1px solid #eee;">Publish Date</th><th style="padding:8px 4px;border-bottom:1px solid #eee;">View</th></tr>';
-                    articles.forEach(function(a, idx) {
-                      html += '<tr>' +
-                        '<td style="padding:7px 4px;border-bottom:1px solid #f0f0f0;">' + a.title + '</td>' +
-                        '<td style="padding:7px 4px;border-bottom:1px solid #f0f0f0;">' + a.category + '</td>' +
-                        '<td style="padding:7px 4px;border-bottom:1px solid #f0f0f0;">' + a.language + '</td>' +
-                        '<td style="padding:7px 4px;border-bottom:1px solid #f0f0f0;">' + (a.publishDate || '') + '</td>' +
-                        '<td style="padding:7px 4px;border-bottom:1px solid #f0f0f0;"><a href="index.html?article=' + idx + '" target="_blank" style="color:#2196F3;text-decoration:underline;font-weight:500;">View</a></td>' +
-                        '</tr>';
-                    });
-                    html += '</table>';
-                    articlesList.innerHTML = html;
+                  reader.onerror = reject;
+                  reader.readAsDataURL(file);
+                });
+              }
+              imageInput.addEventListener('change', async function() {
+                if (imageInput.files.length > 0) {
+                  imageLabel.textContent = 'Selected: ' + imageInput.files[0].name;
+                  try {
+                    imageBase64 = await resizeImage(imageInput.files[0]);
+                    imagePreview.innerHTML = '<img src="' + imageBase64 + '" style="max-width:120px;max-height:80px;border-radius:6px;box-shadow:0 2px 8px #0001;">';
+                  } catch (err) {
+                    imageLabel.textContent = 'Image load failed';
+                    imageBase64 = '';
+                    imagePreview.innerHTML = '';
                   }
-                  imageInput.addEventListener('change', function() {
-                    if (imageInput.files.length > 0) {
-                      imageLabel.textContent = 'Selected: ' + imageInput.files[0].name;
-                      const reader = new FileReader();
-                      reader.onload = function(e) {
-                        imageBase64 = e.target.result;
-                        imagePreview.innerHTML = '<img src="' + imageBase64 + '" style="max-width:120px;max-height:80px;border-radius:6px;box-shadow:0 2px 8px #0001;">';
-                      };
-                      reader.readAsDataURL(imageInput.files[0]);
-                    } else {
-                      imageLabel.textContent = 'No image selected';
-                      imageBase64 = '';
-                      imagePreview.innerHTML = '';
-                    }
-                  });
-                  fetchCategories();
-                  renderArticlesList();
-                  renderCarouselImagesPreview();
-                `;
-                document.getElementById('admin-main').appendChild(script);
-              })
-              .catch(function() {
-                document.getElementById('admin-main').innerHTML = '<div style="padding:2rem;text-align:center;">Failed to load Articles form.</div>';
+                } else {
+                  imageLabel.textContent = 'No image selected';
+                  imageBase64 = '';
+                  imagePreview.innerHTML = '';
+                }
               });
+              form.addEventListener('submit', async function(e) {
+                e.preventDefault();
+                const formData = new FormData(form);
+                const data = {};
+                formData.forEach(function(value, key) {
+                  if (key === 'image') return; // skip raw file
+                  if (key === 'trending' || key === 'breakingNews') {
+                    data[key] = formData.has(key);
+                  } else {
+                    data[key] = value;
+                  }
+                });
+                if (imageBase64) data.img = imageBase64;
+                try {
+                  await window.saveArticleFS(data);
+                  alert('Article submitted successfully!');
+                  form.reset();
+                  imageLabel.textContent = 'No image selected';
+                  imagePreview.innerHTML = '';
+                  imageBase64 = '';
+                  renderArticlesList();
+                } catch (err) {
+                  alert('Failed to publish article. ' + (err && err.message ? err.message : err));
+                  console.error('Firestore error:', err);
+                }
+              });
+              async function renderArticlesList() {
+                const articles = await window.getArticlesFS();
+                if (!articles.length) { articlesList.innerHTML = '<div style="color:#888;text-align:center;">No articles yet.</div>'; return; }
+                var html = '<table style="width:100%;border-collapse:collapse;font-size:0.98rem;">';
+                html += '<tr style="background:#f5f5f5;"><th style="padding:8px 4px;border-bottom:1px solid #eee;">Title</th><th style="padding:8px 4px;border-bottom:1px solid #eee;">Category</th><th style="padding:8px 4px;border-bottom:1px solid #eee;">Language</th><th style="padding:8px 4px;border-bottom:1px solid #eee;">Publish Date</th><th style="padding:8px 4px;border-bottom:1px solid #eee;">View</th></tr>';
+                articles.forEach(function(a, idx) {
+                  html += '<tr>' +
+                    '<td style="padding:7px 4px;border-bottom:1px solid #f0f0f0;">' + a.title + '</td>' +
+                    '<td style="padding:7px 4px;border-bottom:1px solid #f0f0f0;">' + a.category + '</td>' +
+                    '<td style="padding:7px 4px;border-bottom:1px solid #f0f0f0;">' + a.language + '</td>' +
+                    '<td style="padding:7px 4px;border-bottom:1px solid #f0f0f0;">' + (a.publishDate || '') + '</td>' +
+                    '<td style="padding:7px 4px;border-bottom:1px solid #f0f0f0;"><a href="index.html?article=' + a.id + '" target="_blank" style="color:#2196F3;text-decoration:underline;font-weight:500;">View</a></td>' +
+                    '</tr>';
+                });
+                html += '</table>';
+                articlesList.innerHTML = html;
+              }
+              // Carousel Images
+              async function renderCarouselImagesPreview() {
+                const imgs = await window.getCarouselImagesFS();
+                carouselImagesPreview.innerHTML = '';
+                imgs.forEach(function(img, idx) {
+                  var div = document.createElement('div');
+                  div.style.position = 'relative';
+                  div.innerHTML = '<img src="' + img + '" style="width:110px;height:60px;object-fit:cover;border-radius:6px;box-shadow:0 2px 8px #0001;"><button data-idx="' + idx + '" style="position:absolute;top:2px;right:2px;background:#fff;color:#e53935;border:none;border-radius:50%;width:22px;height:22px;cursor:pointer;font-weight:bold;font-size:1.1em;">×</button>';
+                  carouselImagesPreview.appendChild(div);
+                });
+              }
+              async function renderCarouselImagesList() {
+                const imgs = await window.getCarouselImagesFS();
+                let html = '';
+                if (!imgs.length) {
+                  html = '<div style="color:#888;text-align:center;">No carousel images yet.</div>';
+                } else {
+                  html = '<div style="display:flex;flex-wrap:wrap;gap:1.2rem;justify-content:center;">';
+                  imgs.forEach((img, idx) => {
+                    html += `<div style='position:relative;display:inline-block;'>
+                      <img src='${img}' style='width:120px;height:70px;object-fit:cover;border-radius:7px;box-shadow:0 2px 8px #0001;'>
+                      <button data-idx='${idx}' style='position:absolute;top:2px;right:2px;background:#fff;color:#e53935;border:none;border-radius:50%;width:22px;height:22px;cursor:pointer;font-weight:bold;font-size:1.1em;'>×</button>
+                    </div>`;
+                  });
+                  html += '</div>';
+                }
+                let listDiv = document.getElementById('carouselImagesList');
+                if (!listDiv) {
+                  listDiv = document.createElement('div');
+                  listDiv.id = 'carouselImagesList';
+                  carouselForm.parentNode.insertBefore(listDiv, carouselForm.nextSibling);
+                }
+                listDiv.innerHTML = html;
+              }
+              carouselImagesPreview.addEventListener('click', async function(e) {
+                if (e.target.tagName === 'BUTTON') {
+                  const idx = +e.target.getAttribute('data-idx');
+                  let imgs = await window.getCarouselImagesFS();
+                  imgs.splice(idx, 1);
+                  await window.setCarouselImagesFS(imgs);
+                  renderCarouselImagesPreview();
+                  renderCarouselImagesList();
+                }
+              });
+              carouselImagesInput.addEventListener('change', async function() {
+                const files = Array.from(carouselImagesInput.files);
+                if (!files.length) return;
+                let imgs = await window.getCarouselImagesFS();
+                if (imgs.length + files.length > 6) {
+                  alert('Maximum 6 images allowed in carousel.');
+                  return;
+                }
+                for (const file of files) {
+                  try {
+                    const resized = await resizeImage(file, 1200, 200);
+                    imgs.push(resized);
+                  } catch (err) {
+                    alert('Failed to process image: ' + file.name);
+                  }
+                }
+                await window.setCarouselImagesFS(imgs);
+                renderCarouselImagesPreview();
+                renderCarouselImagesList();
+                carouselImagesInput.value = '';
+              });
+              carouselForm.addEventListener('submit', async function(e) {
+                e.preventDefault();
+                alert('Carousel images saved!');
+                renderCarouselImagesPreview();
+                renderCarouselImagesList();
+              });
+              // Initial load
+              fetchCategories();
+              renderArticlesList();
+              renderCarouselImagesPreview();
+              renderCarouselImagesList();
+            }, 0);
             break;
           case '#categories':
             if (typeof window.renderCategories === 'function') window.renderCategories();
@@ -747,6 +735,17 @@
       setSidebarActive(initialHash);
       loadSection(initialHash);
     });
+  </script>
+
+  <!-- Firestore Security Rules (for reference, not executable here) -->
+  <script type="text/firestore-rules">
+    service cloud.firestore {
+      match /databases/{database}/documents {
+        match /{document=**} {
+          allow read, write: if true;
+        }
+      }
+    }
   </script>
 </body>
 </html>
