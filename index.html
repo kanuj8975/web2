@@ -459,9 +459,7 @@
   <!-- Desktop Only: Image Carousel -->
   <div class="desktop-carousel" id="desktopCarousel">
     <div class="carousel-track" id="carouselTrack">
-      <img src="https://placehold.co/1600x140/ff6600/fff?text=Carousel+1" alt="Carousel 1" class="carousel-img">
-      <img src="https://placehold.co/1600x140/222/fff?text=Carousel+2" alt="Carousel 2" class="carousel-img">
-      <img src="https://placehold.co/1600x140/ff6600/fff?text=Carousel+3" alt="Carousel 3" class="carousel-img">
+      <!-- Carousel images will be loaded from Firestore by JS -->
     </div>
   </div>
   <!-- Drawer -->
@@ -510,7 +508,21 @@
     </div>
     <div style="margin-top:0.5rem;">&copy; 2025 मॉडर्न मीडिया | संपर्क: info@modernmedia.com</div>
   </footer>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
   <script>
+    // --- Firebase Config ---
+    const firebaseConfig = {
+      apiKey: "AIzaSyBIkMsj6iQoUNoywiS3oBp4PUWKReSnX2w",
+      authDomain: "modern-media-d38df.firebaseapp.com",
+      projectId: "modern-media-d38df",
+      storageBucket: "modern-media-d38df.appspot.com",
+      messagingSenderId: "514430170094",
+      appId: "1:514430170094:web:d0f30c9f3a946cd256d4ff"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+
     // Drawer logic
     const menuBtn = document.getElementById('menuBtn');
     const drawer = document.getElementById('drawerNav');
@@ -561,10 +573,41 @@
     document.addEventListener('keydown', (e) => {
       if (searchOverlay.classList.contains('show') && e.key === 'Escape') searchOverlay.classList.remove('show');
     });
-    // --- Render news cards from localStorage ---
-    function renderNewsListFromLocalStorage() {
+    // --- Firestore fetch helpers ---
+    async function fetchArticlesFromFirestore() {
+      try {
+        const snapshot = await db.collection('articles').orderBy('publishDate', 'desc').get();
+        return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      } catch (e) {
+        console.error('Error fetching articles:', e);
+        return [];
+      }
+    }
+    async function fetchCarouselImagesFromFirestore() {
+      try {
+        const doc = await db.collection('meta').doc('carouselImages').get();
+        const data = doc.exists ? doc.data() : {};
+        return Array.isArray(data.images) ? data.images : [];
+      } catch (e) {
+        console.error('Error fetching carousel images:', e);
+        return [];
+      }
+    }
+    async function fetchSingleArticleFromFirestore(articleId) {
+      try {
+        const doc = await db.collection('articles').doc(articleId).get();
+        return doc.exists ? { id: doc.id, ...doc.data() } : null;
+      } catch (e) {
+        console.error('Error fetching article:', e);
+        return null;
+      }
+    }
+
+    // --- Render news cards from Firestore ---
+    async function renderNewsListFromFirestore() {
       const newsList = document.getElementById('newsList');
-      const articles = getArticlesFromLocalStorage();
+      newsList.innerHTML = '<div style="text-align:center;color:#888;font-size:1.2rem;margin:3rem 0;">लोड हो रहा है...</div>';
+      const articles = await fetchArticlesFromFirestore();
       newsList.innerHTML = '';
       if (!articles.length) {
         const emptyMsg = document.createElement('div');
@@ -576,7 +619,7 @@
         newsList.appendChild(emptyMsg);
         return;
       }
-      articles.forEach((news, idx) => {
+      articles.forEach((news) => {
         const card = document.createElement('div');
         card.className = 'news-card';
         card.innerHTML = `
@@ -590,21 +633,29 @@
               <span class="news-card-category">${news.category || ''}</span>
             </div>
             <div style="margin-top:0.7rem;text-align:right;">
-              <a href="?article=${idx}" style="color:var(--primary-orange);font-weight:500;text-decoration:underline;">पूरा पढ़ें</a>
+              <a href="?article=${news.id}" style="color:var(--primary-orange);font-weight:500;text-decoration:underline;">पूरा पढ़ें</a>
             </div>
           </div>
         `;
         newsList.appendChild(card);
       });
     }
-    // --- Get articles from localStorage ---
-    function getArticlesFromLocalStorage() {
-      return JSON.parse(localStorage.getItem('articles') || '[]');
-    }
-    // --- Render single article ---
-    function renderSingleArticle(article) {
+    // --- Render single article from Firestore ---
+    async function renderSingleArticleFromFirestore(articleId) {
       const newsList = document.getElementById('newsList');
+      newsList.innerHTML = '<div style="text-align:center;color:#888;font-size:1.2rem;margin:3rem 0;">लोड हो रहा है...</div>';
+      const article = await fetchSingleArticleFromFirestore(articleId);
       newsList.innerHTML = '';
+      if (!article) {
+        const emptyMsg = document.createElement('div');
+        emptyMsg.style.textAlign = 'center';
+        emptyMsg.style.color = '#888';
+        emptyMsg.style.fontSize = '1.2rem';
+        emptyMsg.style.margin = '3rem 0';
+        emptyMsg.textContent = 'यह समाचार उपलब्ध नहीं है।';
+        newsList.appendChild(emptyMsg);
+        return;
+      }
       const card = document.createElement('div');
       card.className = 'news-card';
       card.style.maxWidth = '700px';
@@ -623,75 +674,11 @@
       `;
       newsList.appendChild(card);
     }
-    // --- Check for ?article=ID ---
-    (function() {
-      const params = new URLSearchParams(window.location.search);
-      if (params.has('article')) {
-        const idx = parseInt(params.get('article'), 10);
-        const articles = getArticlesFromLocalStorage();
-        if (articles[idx]) {
-          renderSingleArticle(articles[idx]);
-          return;
-        }
-      }
-      renderNewsListFromLocalStorage();
-    })();
-    // Search filter (now filters localStorage articles)
-    searchForm.addEventListener('submit', function() {
-      const q = searchInput.value.trim();
-      const articles = getArticlesFromLocalStorage();
-      if (!q) {
-        renderNewsListFromLocalStorage();
-        searchOverlay.classList.remove('show');
-        return;
-      }
-      const filtered = articles.filter(n =>
-        (n.title && n.title.includes(q)) ||
-        (n.summary && n.summary.includes(q)) ||
-        (n.category && n.category.includes(q)) ||
-        (n.content && n.content.includes(q))
-      );
-      const newsList = document.getElementById('newsList');
-      newsList.innerHTML = '';
-      if (!filtered.length) {
-        const emptyMsg = document.createElement('div');
-        emptyMsg.style.textAlign = 'center';
-        emptyMsg.style.color = '#888';
-        emptyMsg.style.fontSize = '1.2rem';
-        emptyMsg.style.margin = '3rem 0';
-        emptyMsg.textContent = 'कोई समाचार नहीं मिला।';
-        newsList.appendChild(emptyMsg);
-      } else {
-        filtered.forEach((news, idx) => {
-          const card = document.createElement('div');
-          card.className = 'news-card';
-          card.innerHTML = `
-            <img src="${news.img || 'https://placehold.co/400x200/ff6600/fff?text=No+Image'}" alt="${news.title}">
-            <div class="news-card-content">
-              <div class="news-card-title">${news.title}</div>
-              <div class="news-card-summary">${news.summary || (news.content ? news.content.substring(0, 120) + (news.content.length > 120 ? '...' : '') : '')}</div>
-              <div class="news-card-meta">
-                <span>${news.author || 'Admin User'}</span> |
-                <span>${news.publishDate || news.date || ''}</span>
-                <span class="news-card-category">${news.category || ''}</span>
-              </div>
-              <div style="margin-top:0.7rem;text-align:right;">
-                <a href="?article=${idx}" style="color:var(--primary-orange);font-weight:500;text-decoration:underline;">पूरा पढ़ें</a>
-              </div>
-            </div>
-          `;
-          newsList.appendChild(card);
-        });
-      }
-      searchOverlay.classList.remove('show');
-    });
-    // --- Carousel images from localStorage ---
-    function getCarouselImagesFromLocalStorage() {
-      return JSON.parse(localStorage.getItem('carouselImages') || '[]');
-    }
-    function renderCarouselImages() {
+    // --- Render carousel images from Firestore ---
+    async function renderCarouselImagesFromFirestore() {
       const carouselTrack = document.getElementById('carouselTrack');
-      const images = getCarouselImagesFromLocalStorage();
+      carouselTrack.innerHTML = '<div style="width:100%;text-align:center;color:#888;font-size:1.1rem;line-height:140px;">लोड हो रहा है...</div>';
+      const images = await fetchCarouselImagesFromFirestore();
       carouselTrack.innerHTML = '';
       if (images.length) {
         images.forEach((img, i) => {
@@ -710,21 +697,82 @@
         `;
       }
     }
-    renderCarouselImages();
-    // Desktop carousel logic (touch/drag scrollable)
-    let carouselImgs = document.getElementById('carouselTrack').querySelectorAll('.carousel-img');
-    let carouselIdx = 0;
+    // --- Main page logic: check for ?article=ID and render ---
+    (async function() {
+      // Render carousel images
+      await renderCarouselImagesFromFirestore();
+      // Render articles or single article
+      const params = new URLSearchParams(window.location.search);
+      if (params.has('article')) {
+        const articleId = params.get('article');
+        await renderSingleArticleFromFirestore(articleId);
+        return;
+      }
+      await renderNewsListFromFirestore();
+    })();
+    // --- Search filter (Firestore) ---
+    searchForm.addEventListener('submit', async function() {
+      const q = searchInput.value.trim();
+      const newsList = document.getElementById('newsList');
+      newsList.innerHTML = '<div style="text-align:center;color:#888;font-size:1.2rem;margin:3rem 0;">लोड हो रहा है...</div>';
+      const articles = await fetchArticlesFromFirestore();
+      if (!q) {
+        await renderNewsListFromFirestore();
+        searchOverlay.classList.remove('show');
+        return;
+      }
+      const filtered = articles.filter(n =>
+        (n.title && n.title.includes(q)) ||
+        (n.summary && n.summary.includes(q)) ||
+        (n.category && n.category.includes(q)) ||
+        (n.content && n.content.includes(q))
+      );
+      newsList.innerHTML = '';
+      if (!filtered.length) {
+        const emptyMsg = document.createElement('div');
+        emptyMsg.style.textAlign = 'center';
+        emptyMsg.style.color = '#888';
+        emptyMsg.style.fontSize = '1.2rem';
+        emptyMsg.style.margin = '3rem 0';
+        emptyMsg.textContent = 'कोई समाचार नहीं मिला।';
+        newsList.appendChild(emptyMsg);
+      } else {
+        filtered.forEach((news) => {
+          const card = document.createElement('div');
+          card.className = 'news-card';
+          card.innerHTML = `
+            <img src="${news.img || 'https://placehold.co/400x200/ff6600/fff?text=No+Image'}" alt="${news.title}">
+            <div class="news-card-content">
+              <div class="news-card-title">${news.title}</div>
+              <div class="news-card-summary">${news.summary || (news.content ? news.content.substring(0, 120) + (news.content.length > 120 ? '...' : '') : '')}</div>
+              <div class="news-card-meta">
+                <span>${news.author || 'Admin User'}</span> |
+                <span>${news.publishDate || news.date || ''}</span>
+                <span class="news-card-category">${news.category || ''}</span>
+              </div>
+              <div style="margin-top:0.7rem;text-align:right;">
+                <a href="?article=${news.id}" style="color:var(--primary-orange);font-weight:500;text-decoration:underline;">पूरा पढ़ें</a>
+              </div>
+            </div>
+          `;
+          newsList.appendChild(card);
+        });
+      }
+      searchOverlay.classList.remove('show');
+    });
+    // --- Desktop carousel logic (touch/drag scrollable) ---
+    let carouselImgs, carouselIdx = 0;
     function scrollToCarouselImg(idx) {
+      carouselImgs = document.getElementById('carouselTrack').querySelectorAll('.carousel-img');
       const img = carouselImgs[idx];
       if (img) img.scrollIntoView({ behavior: 'smooth', inline: 'start', block: 'nearest' });
     }
-    if (carouselImgs.length > 0) {
-      setInterval(() => {
-        carouselImgs = document.getElementById('carouselTrack').querySelectorAll('.carousel-img');
-        carouselIdx = (carouselIdx + 1) % carouselImgs.length;
-        scrollToCarouselImg(carouselIdx);
-      }, 4000);
-    }
+    setInterval(() => {
+      carouselImgs = document.getElementById('carouselTrack').querySelectorAll('.carousel-img');
+      if (carouselImgs.length === 0) return;
+      carouselIdx = (carouselIdx + 1) % carouselImgs.length;
+      scrollToCarouselImg(carouselIdx);
+    }, 4000);
     if (typeof renderArticles === 'function') window.renderArticles = renderArticles;
   </script>
 </body>
