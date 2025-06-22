@@ -261,6 +261,17 @@
   <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore-compat.js"></script>
   <script>
+    // Initialize Firebase (add your config here)
+    const firebaseConfig = {
+      apiKey: "AIzaSyBIkMsj6iQoUNoywiS3oBp4PUWKReSnX2w",
+      authDomain: "modern-media-d38df.firebaseapp.com",
+      projectId: "modern-media-d38df",
+      storageBucket: "modern-media-d38df.appspot.com",
+      messagingSenderId: "514430170094",
+      appId: "1:514430170094:web:d0f30c9f3a946cd256d4ff"
+    };
+    if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
     // Firestore analytics logging removed. Use Google Analytics for analytics logging.
   </script>
   <!-- Google tag (gtag.js) -->
@@ -269,7 +280,7 @@
     window.dataLayer = window.dataLayer || [];
     function gtag(){dataLayer.push(arguments);}
     gtag('js', new Date());
-    gtag('config', 'G-7QZ3DW9JKY');
+    gtag('config', 'G-HSKC8HX4MT');
   </script>
 </head>
 <body>
