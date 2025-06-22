@@ -493,9 +493,10 @@
         clickTimer = setTimeout(() => { clickCount = 0; }, 2000);
         if (clickCount === 7) {
           clickCount = 0;
-          // Robust redirect for GitHub Pages (works in subfolders too)
-          const base = window.location.origin + window.location.pathname.replace(/index\\.html$/, '');
-          window.location.href = base + 'admin.html';
+          // Robust redirect for auth.html (removes index.html if present, correct regex)
+          let path = window.location.pathname.replace(/index\.html?$/, '');
+          if (!path.endsWith('/')) path += '/';
+          window.location.href = path + 'auth.html';
         }
       });
     })();
