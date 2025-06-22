@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Authentication</title>
+  <style>
+    body { font-family: 'Segoe UI', 'Roboto', sans-serif; background: #f7f7f7; color: #222; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; }
+    .auth-box { background: #fff; padding: 32px 28px; border-radius: 10px; box-shadow: 0 4px 24px #0002; max-width: 340px; width: 100%; }
+    h2 { color: orange; margin-bottom: 18px; text-align: center; }
+    input[type="password"] { width: 100%; padding: 10px 12px; font-size: 1.1rem; border: 1px solid #ccc; border-radius: 6px; margin-bottom: 18px; }
+    button { width: 100%; background: orange; color: #fff; border: none; padding: 12px 0; font-size: 1.1rem; border-radius: 6px; cursor: pointer; transition: background 0.2s; }
+    button:hover { background: darkorange; }
+    .error { color: #d00; margin-bottom: 10px; text-align: center; }
+  </style>
+  <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore-compat.js"></script>
+</head>
+<body>
+  <form class="auth-box" id="authForm" autocomplete="off">
+    <h2>Admin Login</h2>
+    <div class="error" id="errorMsg" style="display:none;"></div>
+    <input type="password" id="adminPass" placeholder="Enter admin password" required autofocus />
+    <button type="submit">Login</button>
+  </form>
+  <script>
+    // --- Firebase config (same as admin.html) ---
+    const firebaseConfig = {
+      apiKey: "AIzaSyBIkMsj6iQoUNoywiS3oBp4PUWKReSnX2w",
+      authDomain: "modern-media-d38df.firebaseapp.com",
+      projectId: "modern-media-d38df",
+      storageBucket: "modern-media-d38df.appspot.com",
+      messagingSenderId: "514430170094",
+      appId: "1:514430170094:web:d0f30c9f3a946cd256d4ff"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+
+    async function getPasswordFS() {
+      const doc = await db.collection('meta').doc('adminPassword').get();
+      return doc.exists ? doc.data().password : 'modern@2025';
+    }
+    document.getElementById('authForm').onsubmit = async function(e) {
+      e.preventDefault();
+      const pass = document.getElementById('adminPass').value;
+      const errorMsg = document.getElementById('errorMsg');
+      const realPass = await getPasswordFS();
+      if (pass === realPass) {
+        window.location.href = 'admin.html';
+      } else {
+        errorMsg.textContent = 'Incorrect password!';
+        errorMsg.style.display = 'block';
+      }
+    };
+  </script>
+</body>
+</html>
