@@ -258,8 +258,19 @@
       }
     }
   </style>
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script> 
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script> 
+  <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore-compat.js"></script>
+  <script>
+    // Firestore analytics logging removed. Use Google Analytics for analytics logging.
+  </script>
+  <!-- Google tag (gtag.js) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-7QZ3DW9JKY"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-7QZ3DW9JKY');
+  </script>
 </head>
 <body>
   <header>
@@ -290,17 +301,6 @@
     </aside>
   </div>
   <script>
-    const firebaseConfig = {
-      apiKey: "AIzaSyBIkMsj6iQoUNoywiS3oBp4PUWKReSnX2w",
-      authDomain: "modern-media-d38df.firebaseapp.com",
-      projectId: "modern-media-d38df",
-      storageBucket: "modern-media-d38df.appspot.com",
-      messagingSenderId: "514430170094",
-      appId: "1:514430170094:web:d0f30c9f3a946cd256d4ff"
-    };
-    firebase.initializeApp(firebaseConfig);
-    const db = firebase.firestore();
-
     let allArticles = [];
     const newsCache = {};
 
