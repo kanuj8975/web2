@@ -139,6 +139,14 @@
       .dashboard-charts { grid-template-columns: 1fr; }
     }
   </style>
+  <!-- Google tag (gtag.js) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-7QZ3DW9JKY"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-7QZ3DW9JKY');
+  </script>
 </head>
 <body>
   <div class="admin-container">
@@ -263,7 +271,7 @@
   <script src="assets/js/categories.js"></script>
   <script src="assets/js/languages.js"></script>
   <script src="assets/js/users.js"></script>
-  <script src="assets/js/analytics.js"></script>
+  <script src="assets/js/analytics-dashboard.js"></script>
   <!-- Firebase App (the core Firebase SDK) -->
   <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-app-compat.js"></script>
   <!-- Firebase Firestore -->
@@ -758,8 +766,26 @@
             else showNotFound();
             break;
           case '#analytics':
-            if (typeof window.renderAnalytics === 'function') window.renderAnalytics();
-            else showNotFound();
+            // Dynamically load analytics dashboard HTML and initialize JS
+            fetch('assets/html/analytics-dashboard.html')
+              .then(res => res.text())
+              .then(html => {
+                document.getElementById('admin-main').innerHTML = html;
+                // Always load the analytics-dashboard.js script after HTML injection
+                const script = document.createElement('script');
+                script.src = 'assets/js/analytics-dashboard.js';
+                script.onload = function() {
+                  if (window.initAnalyticsDashboard) {
+                    window.initAnalyticsDashboard();
+                  } else if (window.renderAnalyticsDashboard) {
+                    window.renderAnalyticsDashboard();
+                  }
+                };
+                document.body.appendChild(script);
+              })
+              .catch(() => {
+                showNotFound();
+              });
             break;
           default:
             showNotFound();
