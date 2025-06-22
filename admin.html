@@ -197,7 +197,63 @@
         <h3>Recent Posts</h3>
         <ul id="recent-posts-list"></ul>
       </section>
+      <div class="change-pass-box">
+        <h2 style="color:orange;text-align:center;">Change Admin Password</h2>
+        <div class="msg" id="changeMsg"></div>
+        <form id="changePassForm" autocomplete="off">
+          <label for="oldPass">Current Password</label>
+          <input type="password" id="oldPass" required placeholder="Current password">
+          <label for="newPass">New Password</label>
+          <input type="password" id="newPass" required placeholder="New password">
+          <label for="confirmPass">Confirm New Password</label>
+          <input type="password" id="confirmPass" required placeholder="Confirm new password">
+          <button type="submit">Change Password</button>
+        </form>
+      </div>
     </main>
+    <button id="openPassModal" style="position:fixed;bottom:24px;left:24px;z-index:1000;background:#FF9800;color:#fff;border:none;border-radius:50%;width:54px;height:54px;box-shadow:0 2px 12px #0003;font-size:1.7rem;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background 0.2s;" title="Change Admin Password"><i class="fas fa-key"></i></button>
+    <div id="passModalBackdrop" style="display:none;position:fixed;top:0;left:0;width:100vw;height:100vh;background:#0007;z-index:1001;"></div>
+    <div id="passModal" style="display:none;position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:#fff;z-index:1002;padding:2.2rem 1.5rem 1.5rem 1.5rem;border-radius:16px;box-shadow:0 4px 32px #0003;min-width:320px;max-width:95vw;width:100%;max-width:370px;">
+      <h2 style="color:#FF9800;text-align:center;margin-bottom:1.2rem;font-size:1.5rem;letter-spacing:0.5px;">Change Admin Password</h2>
+      <div class="msg" id="changeMsgModal" style="min-height:22px;text-align:center;font-size:1.05rem;margin-bottom:0.5rem;"></div>
+      <form id="changePassFormModal" autocomplete="off" style="display:flex;flex-direction:column;gap:0.7rem;">
+        <label for="oldPassModal" style="font-weight:600;color:#333;font-size:1.05rem;">Current Password</label>
+        <input type="password" id="oldPassModal" required placeholder="Current password" style="width:100%;padding:0.7rem 1rem;border:1.5px solid #bbb;border-radius:7px;font-size:1.08rem;">
+        <label for="newPassModal" style="font-weight:600;color:#333;font-size:1.05rem;">New Password</label>
+        <input type="password" id="newPassModal" required placeholder="New password" style="width:100%;padding:0.7rem 1rem;border:1.5px solid #bbb;border-radius:7px;font-size:1.08rem;">
+        <label for="confirmPassModal" style="font-weight:600;color:#333;font-size:1.05rem;">Confirm New Password</label>
+        <input type="password" id="confirmPassModal" required placeholder="Confirm new password" style="width:100%;padding:0.7rem 1rem;border:1.5px solid #bbb;border-radius:7px;font-size:1.08rem;">
+        <button type="submit" style="width:100%;background:#FF9800;color:#fff;border:none;border-radius:7px;padding:0.85rem 0;font-size:1.13rem;font-weight:700;margin-top:0.7rem;box-shadow:0 2px 8px #FF980033;">Change Password</button>
+        <button type="button" id="closePassModal" style="width:100%;margin-top:0.5rem;background:#eee;color:#333;border:none;border-radius:7px;padding:0.8rem 0;font-size:1.08rem;font-weight:500;">Cancel</button>
+      </form>
+    </div>
+    <style>
+      @media (max-width: 600px) {
+        #passModal {
+          min-width: unset !important;
+          width: 98vw !important;
+          max-width: 98vw !important;
+          padding: 1.2rem 0.5rem 1rem 0.5rem !important;
+        }
+        #passModal h2 {
+          font-size: 1.15rem !important;
+        }
+        #passModal input, #passModal button {
+          font-size: 1rem !important;
+        }
+      }
+      #passModal input:focus {
+        border-color: #2196F3;
+        outline: none;
+        background: #f5faff;
+      }
+      #passModal button[type="submit"]:hover {
+        background: #e67c00;
+      }
+      #passModal button[type="button"]:hover {
+        background: #ddd;
+      }
+    </style>
   </div>
 
   <!-- Scripts -->
@@ -734,6 +790,89 @@
       clearSidebarActive();
       setSidebarActive(initialHash);
       loadSection(initialHash);
+    });
+
+    // Password modal handlers
+    document.getElementById('openPassModal').addEventListener('click', function() {
+      document.getElementById('passModalBackdrop').style.display = 'block';
+      document.getElementById('passModal').style.display = 'block';
+    });
+    document.getElementById('closePassModal').addEventListener('click', function() {
+      document.getElementById('passModalBackdrop').style.display = 'none';
+      document.getElementById('passModal').style.display = 'none';
+    });
+    document.getElementById('changePassFormModal').addEventListener('submit', async function(e) {
+      e.preventDefault();
+      const oldPass = document.getElementById('oldPassModal').value;
+      const newPass = document.getElementById('newPassModal').value;
+      const confirmPass = document.getElementById('confirmPassModal').value;
+      if (newPass !== confirmPass) {
+        alert('New password and confirmation do not match.');
+        return;
+      }
+      // TODO: Implement actual password change logic
+      document.getElementById('changeMsgModal').textContent = 'Password changed successfully!';
+      setTimeout(() => {
+        document.getElementById('passModalBackdrop').style.display = 'none';
+        document.getElementById('passModal').style.display = 'none';
+      }, 1500);
+    });
+    // Password Change Modal Logic
+    document.addEventListener('DOMContentLoaded', function () {
+      const openBtn = document.getElementById('openPassModal');
+      const modal = document.getElementById('passModal');
+      const backdrop = document.getElementById('passModalBackdrop');
+      const closeBtn = document.getElementById('closePassModal');
+      const form = document.getElementById('changePassFormModal');
+      const msg = document.getElementById('changeMsgModal');
+      if (openBtn && modal && backdrop && closeBtn && form && msg) {
+        openBtn.onclick = function() {
+          modal.style.display = 'block';
+          backdrop.style.display = 'block';
+          msg.textContent = '';
+          form.reset();
+        };
+        closeBtn.onclick = function() {
+          modal.style.display = 'none';
+          backdrop.style.display = 'none';
+        };
+        backdrop.onclick = function() {
+          modal.style.display = 'none';
+          backdrop.style.display = 'none';
+        };
+        // Password Change Modal Logic (now uses Firestore)
+        form.onsubmit = async function(e) {
+          e.preventDefault();
+          const oldPass = document.getElementById('oldPassModal').value;
+          const newPass = document.getElementById('newPassModal').value;
+          const confirmPass = document.getElementById('confirmPassModal').value;
+          msg.textContent = '';
+          msg.style.color = 'red';
+          // Fetch current password from Firestore
+          let passDoc = await db.collection('meta').doc('adminPassword').get();
+          let stored = passDoc.exists ? passDoc.data().password : 'modern@2025';
+          if (oldPass !== stored) {
+            msg.textContent = 'Current password is incorrect!';
+            return;
+          }
+          if (newPass.length < 4) {
+            msg.textContent = 'New password must be at least 4 characters.';
+            return;
+          }
+          if (newPass !== confirmPass) {
+            msg.textContent = 'New passwords do not match!';
+            return;
+          }
+          // Save new password to Firestore
+          await db.collection('meta').doc('adminPassword').set({ password: newPass });
+          msg.textContent = 'Password changed successfully!';
+          msg.style.color = 'green';
+          setTimeout(() => {
+            modal.style.display = 'none';
+            backdrop.style.display = 'none';
+          }, 1200);
+        };
+      }
     });
   </script>
 
